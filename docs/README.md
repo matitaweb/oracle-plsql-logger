@@ -15,7 +15,7 @@ Execute with [sqldeveloper](https://www.oracle.com/database/technologies/appdev/
 ./oracle_plsql_logger.sql
 ```
 
-### after installation DDL
+### after installation (DDL)
 
 
 ```sql
@@ -57,18 +57,33 @@ Some information for the columns:
 
 
 
+### how to use (EXAMPLE)
+
+Write some code and ad some log in LOGGER_TEST_PROCEDURE example:
+
 ``` sql
--- to log simple add 
+CREATE OR REPLACE PROCEDURE LOGGER_TEST_PROCEDURE AS 
+BEGIN
+-- to log simple add the rows
   LOGGER.error('some error to log...');  
   LOGGER.warn('some warn to log...');  
   LOGGER.info('some info to log...');  
-  LOGGER.info('some debug info to log...');  
+  LOGGER.debug('some debug info to log...');  
   LOGGER.trace('some trace info to log...');    
-
-
+END LOGGER_TEST_PROCEDURE;
 ```
 
-See for example LOGGER_TEST_PROCEDURE()
+to enable  the logs add a row in LOGGER_LOG_CFG
+
+example
+
+| LOG_SRC               | LOG_LEVEL      | MEMO| 
+| ---------             |:-------------:| :-------------:|
+|LOGGER_TEST_PROCEDURE  | INFO,WARN,ERROR| Enable only some levels for LOGGER_TEST_PROCEDURE |
+| ...  | ... |  ... |
+
+
+See what happen in LOGGER_LOG executing LOGGER_TEST_PROCEDURE()
 
 ``` sql
 BEGIN
