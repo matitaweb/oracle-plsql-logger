@@ -5,7 +5,7 @@ http://www.oaktable.net/content/oracle-12c-%E2%80%93-utlcallstack-easier-debuggi
 https://blogs.oracle.com/oraclemagazine/sophisticated-call-stack-analysis
 https://idlesummerbreeze.wordpress.com/2014/08/27/what-is-die-difference-between-sessionid-and-sid-in-userenv-context/
 
-For Oracle 12g 
+For Oracle 12g  
 */
 
 /* DROP TABLE IF EXIST */
@@ -46,6 +46,7 @@ COMMENT ON COLUMN LOGGER_LOG.LOG_INFO       IS 'log user content';
 /* DROP TABLE IF EXIST */
 DROP TABLE LOGGER_LOG_CFG;
 /
+
 
 /*
 LOG CONFIGURATION FOR EVERY PACKAGE / PROCEDURE
