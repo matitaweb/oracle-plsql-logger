@@ -100,6 +100,8 @@ END;
 
 create or replace PACKAGE BODY LOGGER 
 IS 
+    vn_debug_mode NUMBER :=0; /* enable: 1 , disable: 0*/
+    vn_dbms_output_mode NUMBER :=1; /* enable: 1 , disable: 0*/
 
    PROCEDURE log_add (p_level IN VARCHAR2, p_app_info_in IN VARCHAR2, p_start_time_trace_num NUMBER default 0, p_end_time_trace_num NUMBER default 0) 
    IS 
@@ -116,46 +118,67 @@ IS
         v_log_line := utl_call_stack.concatenate_subprogram(utl_call_stack.subprogram(3) ); -- prima riga del chiamante al log
         v_log_line_num := utl_call_stack.unit_line(3);
         v_package_name:= substr(v_log_line,1, instr(v_log_line,'.',1)-1);
-        -- DBMS_OUTPUT.put_line ( ' v_log_line:  ' || v_log_line);
-        --DBMS_OUTPUT.put_line ( ' v_package_name:  ' || v_package_name);
+        
+        --SOME DEBUG
+        IF vn_debug_mode = 1 THEN 
+            DBMS_OUTPUT.put_line ( ' v_log_line:  ' || v_log_line);
+            DBMS_OUTPUT.put_line ( ' v_package_name:  ' || v_package_name);
+        END IF;
+        
         IF v_package_name is NULL or v_package_name = ''  THEN
-            DBMS_OUTPUT.put_line ( ' v_package_name empty per ' || v_log_line);
+            DBMS_OUTPUT.put_line ( ' v_package_name empty for ' || v_log_line);
+            v_package_name := v_log_line;
+        END IF;
+        
+        IF v_package_name is NULL or v_package_name = ''  THEN
+            DBMS_OUTPUT.put_line ( ' v_package_name empty for ' || v_log_line);
             v_package_name := '*';
         END IF;
+        
         BEGIN
             SELECT distinct 1 into v_enabled FROM LOGGER_LOG_CFG t WHERE 
             (UPPER(t.log_src) = UPPER(v_log_line)  AND LOG_LEVEL like '%'||p_level||'%')
             OR (UPPER(t.log_src) = UPPER(v_package_name) AND LOG_LEVEL like '%'||p_level||'%')
             OR (t.log_src = '*'  AND LOG_LEVEL like '%'||p_level||'%');
-        EXCEPTION WHEN OTHERS THEN
-            DBMS_OUTPUT.put_line ( ' EXCEPTION WHEN OTHERS ' || v_package_name);
+        EXCEPTION 
+        WHEN no_data_found THEN 
+            v_enabled := 0;
+            DBMS_OUTPUT.put_line ( ' NO CONFIGURATION FOR ' || v_package_name || ', Error: ' || SQLCODE ||' -> ' || SQLERRM );
+        WHEN OTHERS THEN
+            DBMS_OUTPUT.put_line ( ' EXCEPTION WHEN OTHERS ' || v_package_name || ', Error: ' || SQLCODE ||' -> ' || SQLERRM );
             v_enabled :=0;
         END;
-        
-        /*
-		--SOME DEBUG
-        DBMS_OUTPUT.put_line ( 'LexDepth Depth LineNo Name');
-        DBMS_OUTPUT.put_line ( '-------- ----- ------ ----');
-        dbms_output.put_line(rpad(utl_call_stack.lexical_depth(utl_call_stack.dynamic_depth ()),9)
-            || rpad(utl_call_stack.dynamic_depth (),5)
-            || rpad(TO_CHAR(utl_call_stack.unit_line(utl_call_stack.dynamic_depth ())),8)
-            || utl_call_stack.concatenate_subprogram(utl_call_stack.subprogram(utl_call_stack.dynamic_depth ()) ) );   
-        DBMS_OUTPUT.put_line ( '-------- ----- ------ ----');
-        DBMS_OUTPUT.put_line ( '-------- ----- ------ ----');
-        FOR the_depth IN 1..utl_call_stack.dynamic_depth () LOOP
-            dbms_output.put_line(rpad(utl_call_stack.lexical_depth(the_depth),9)
-            || rpad(the_depth,5)
-            || rpad(TO_CHAR(utl_call_stack.unit_line(the_depth),'999'),8)
-            || utl_call_stack.concatenate_subprogram(utl_call_stack.subprogram(the_depth) ) );    
-        END LOOP;
-        */
 
-		
+        
+		--SOME DEBUG
+        IF vn_debug_mode = 1 THEN 
+            DBMS_OUTPUT.put_line ( 'LexDepth Depth LineNo Name');
+            DBMS_OUTPUT.put_line ( '-------- ----- ------ ----');
+            dbms_output.put_line(rpad(utl_call_stack.lexical_depth(utl_call_stack.dynamic_depth ()),9)
+                || rpad(utl_call_stack.dynamic_depth (),5)
+                || rpad(TO_CHAR(utl_call_stack.unit_line(utl_call_stack.dynamic_depth ())),8)
+                || utl_call_stack.concatenate_subprogram(utl_call_stack.subprogram(utl_call_stack.dynamic_depth ()) ) );   
+            DBMS_OUTPUT.put_line ( '-------- ----- ------ ----');
+            DBMS_OUTPUT.put_line ( '-------- ----- ------ ----');
+            FOR the_depth IN 1..utl_call_stack.dynamic_depth () LOOP
+                dbms_output.put_line(rpad(utl_call_stack.lexical_depth(the_depth),9)
+                || rpad(the_depth,5)
+                || rpad(TO_CHAR(utl_call_stack.unit_line(the_depth),'999'),8)
+                || utl_call_stack.concatenate_subprogram(utl_call_stack.subprogram(the_depth) ) );    
+            END LOOP;
+        END IF;
+
+
         IF v_enabled != 1 THEN /* WHEN LOG IS NOT ENABLED */
             --DBMS_OUTPUT.put_line ( 'v_enabled <> 1' || p_level);
             RETURN;
         END IF;
 
+        IF vn_dbms_output_mode = 1 THEN 
+            DBMS_OUTPUT.put_line ('LOG: [' || p_level || '] ' || p_app_info_in);
+        END IF;
+        
+        BEGIN
         INSERT INTO LOGGER_LOG (
             log_sid,
             log_audsid,
@@ -187,7 +210,10 @@ IS
             substr(DBMS_UTILITY.format_error_backtrace,1,least(3999,length(DBMS_UTILITY.format_error_backtrace))), 
             substr(p_app_info_in,1,least(3999,length(p_app_info_in))) 
             ); 
-
+        EXCEPTION 
+        WHEN OTHERS THEN            
+            DBMS_OUTPUT.put_line ('Errore: ' || SQLCODE ||' -> ' || SQLERRM );
+        END;
       COMMIT; 
    END; 
 
