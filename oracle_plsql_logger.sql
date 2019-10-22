@@ -8,8 +8,18 @@ https://idlesummerbreeze.wordpress.com/2014/08/27/what-is-die-difference-between
 For Oracle 12g  
 */
 
-/* DROP TABLE IF EXIST */
-DROP TABLE LOGGER_LOG;
+
+/* DROP TABLE IF EXIST 
+https://stackoverflow.com/questions/1799128/oracle-if-table-exists
+*/
+BEGIN
+   EXECUTE IMMEDIATE 'DROP TABLE LOGGER_LOG';
+EXCEPTION
+   WHEN OTHERS THEN
+      IF SQLCODE != -942 THEN
+         RAISE;
+      END IF;
+END;
 /
 
 /* LOGGER TABLE */
@@ -43,8 +53,17 @@ COMMENT ON COLUMN LOGGER_LOG.LOG_LINE_NUM   IS 'source line number of caller pro
 COMMENT ON COLUMN LOGGER_LOG.LOG_INFO       IS 'log user content';
 
 
-/* DROP TABLE IF EXIST */
-DROP TABLE LOGGER_LOG_CFG;
+/* DROP TABLE IF EXIST 
+https://stackoverflow.com/questions/1799128/oracle-if-table-exists
+*/
+BEGIN
+   EXECUTE IMMEDIATE 'DROP TABLE LOGGER_LOG_CFG';
+EXCEPTION
+   WHEN OTHERS THEN
+      IF SQLCODE != -942 THEN
+         RAISE;
+      END IF;
+END;
 /
 
 
